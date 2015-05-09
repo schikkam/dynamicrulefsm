@@ -24,9 +24,17 @@ object stb extends App {
     x += 2
     y += 3
     """
+  sealed trait Msg
+  case class Event() extends Msg
+  case class Start() extends Msg
 
+  val msgs = """
+    sealed trait Msg
+    case class Event() extends Msg
+    case class Start() extends Msg
+  """
   val ruleTemplate = s"""
-    import scala.collection.mutable._
+    import scala.collection.mutable.ListBuffer
     import akka.actor.Actor
     import akka.actor.Props
 
@@ -34,20 +42,33 @@ object stb extends App {
     
       import context._ 
     
-      ${col0}
-    
-      def receive = {
-        case "start" =>
-        println("start and becoming col1") 
+    ${msgs}
+
+    def receive = {
+      case "start" =>
+      println("start and becoming col1") 
+      become(col1)
+
+      case Start => 
+        println("Start And Become Col1")
         become(col1)
-      }
-      
-      def col1:Receive = {
-        case "event" => 
+    }
+    
+    def col1:Receive = {
+      case "event" => 
+        println("col1 and becoming col2") 
         ${col1}
-        println(x)
-        println(y)
-      }
+        //become(col2)
+
+      case Event  => 
+        println("Event Message" )
+        become(col2)
+    }
+    def col2:Receive = {
+      case "Execute" => 
+        println("Now in Col2")
+        become(col1)
+    }
     
     }
     
@@ -67,7 +88,9 @@ object stb extends App {
   val actor: ActorRef = tb.eval(tree).asInstanceOf[ActorRef]
   
   // for demo purpose Iam just calling the actor 
-  actor ! "start"
-  
-  actor ! "event"
+  //actor ! "start"
+  //actor ! "event"
+  actor ! Start
+  actor ! Event
+  //actor ! "Execute"
 }
